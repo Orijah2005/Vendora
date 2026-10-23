@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Vendora</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.58.0/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f2f6f4;--card:#fff;--ink:#14212b;--mute:#5a6b73;--pri:#0f5c5a;--onpri:#fff;--acc:#f2b632;--line:#d3ddd9;--ok:#1d7a46;--bad:#b3392f;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0e1a1f;--card:#16262d;--ink:#e8f0ee;--mute:#9bb0b4;--pri:#4fb3ad;--onpri:#06201f;--line:#2a3d44;--ok:#5cc58a;--bad:#ef8a80;color-scheme:dark}}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.5 "Source Sans 3",system-ui,sans-serif}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;margin:0;line-height:1.15}
+main{max-width:720px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.tabs{display:flex;gap:4px;background:var(--line);padding:4px;border-radius:12px;margin-bottom:16px}
+.tabs button{flex:1;border:0;background:none;color:var(--ink);font:600 15px "Source Sans 3",system-ui,sans-serif;padding:10px;border-radius:9px;cursor:pointer}
+.tabs button[aria-pressed="true"]{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.badge{background:var(--acc);color:#14212b;border-radius:99px;font-size:12px;padding:1px 7px;margin-left:4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.chips{display:flex;gap:8px;margin:10px 0 16px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 14px;font:inherit;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--pri);color:var(--onpri);border-color:var(--pri)}
+.grid{display:grid;gap:12px}
+@media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.card h3{font-size:18px}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--line)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.kind{font-size:13px;font-weight:600;border-radius:6px;padding:2px 8px}
+.kind.product{background:var(--acc);color:#14212b}
+.kind.service{background:var(--pri);color:var(--onpri)}
+.mute{color:var(--mute);font-size:14px}
+.price{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-weight:800;font-size:18px}
+.btn{border:0;background:var(--pri);color:var(--onpri);font:600 15px "Source Sans 3",system-ui,sans-serif;border-radius:10px;padding:10px 14px;cursor:pointer}
+.btn.ghost{background:none;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+h2{font-size:20px;margin:24px 0 10px}
+.pill{font-size:13px;font-weight:600;border-radius:99px;padding:2px 10px;border:1px solid currentColor}
+.pill.pending{color:var(--mute)}.pill.accepted{color:var(--ok)}.pill.declined{color:var(--bad)}.pill.paid{color:var(--pri)}.pill.completed{color:var(--ok)}
+label{display:block;font-weight:600;font-size:14px;margin:10px 0 4px}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:5}
+.sheet>div{background:var(--card);width:100%;max-width:720px;border-radius:18px 18px 0 0;padding:18px 16px 24px}
+.empty{color:var(--mute);padding:12px 0}
+.msgs{max-height:40vh;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:10px 0}
+.msg{align-self:flex-start;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:6px 12px;max-width:85%}
+.msg.me{align-self:flex-end;background:var(--pri);color:var(--onpri);border-color:var(--pri)}
+.msg .mute{font-size:12px}.msg.me .mute{color:inherit;opacity:.8}
+.sheet .row input{flex:1}
+#toast{position:fixed;left:12px;right:12px;bottom:12px;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:10px;z-index:9;display:none}
+.auth{max-width:380px;margin:8vh auto 0}
+</style>
+</head>
+<body>
+<main id="root"></main>
+<div id="sheet"></div>
+<div id="toast" role="status"></div>
+<script>
+// ----- Settings (both values are safe to be public) -----
+const SB_URL='https://sjejjubjaiadmbtqflnw.supabase.co';
+const SB_KEY='sb_publishable_qkdadxjlvCNcJzvmyeObHA_w52GR-yu';
+
+const sb=supabase.createClient(SB_URL,SB_KEY);
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const usd=c=>'$'+(c/100).toLocaleString('en-US',{minimumFractionDigits:c%100?2:0,maximumFractionDigits:2});
+const S={user:null,tab:'buy',f:'all',q:'',L:[],R:[],M:[],rt:{},prof:null,banks:[],open:null,chat:null};
+let toastT,chatT;
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',5000)}
+const pill=s=>`<span class="pill ${s}">${s[0].toUpperCase()+s.slice(1)}</span>`;
+const lst=id=>S.L.find(x=>x.id==id);
+const photo=p=>sb.storage.from('listing-photos').getPublicUrl(p).data.publicUrl;
+const rt=id=>S.rt[id]?` · ★ ${S.rt[id].avg} (${S.rt[id].n})`:'';
+
+// ----- Sign in / sign up -----
+function authView(){
+ $('#root').innerHTML=`<div class="auth"><h1>Vendora</h1><p class="mute">Buy and sell products and services.</p>
+ <div class="card"><label for="em">Email</label><input id="em" type="email" autocomplete="email">
+ <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+ <p id="aerr" role="alert" style="color:var(--bad);margin:6px 0"></p>
+ <div class="row" style="justify-content:flex-start"><button class="btn" data-a="signin">Sign in</button><button class="btn ghost" data-a="signup">Create account</button></div></div></div>`;
+}
+// ----- Data -----
+async function load(){
+ if(!S.user)return;
+ const [l,r,p,g]=await Promise.all([
+  sb.from('listings').select('*').order('created_at',{ascending:false}),
+  sb.from('requests').select('*').order('created_at',{ascending:false}),
+  sb.from('profiles').select('*').eq('id',S.user.id).maybeSingle(),
+  sb.from('listing_ratings').select('*')]);
+ S.L=l.data||[];S.R=r.data||[];S.prof=p.data;
+ S.rt={};(g.data||[]).forEach(x=>S.rt[x.listing_id]=x);
+ update();
+}
+// ----- Drawing -----
+const mineBuy=()=>S.R.filter(r=>r.buyer==S.user.id);
+const mineSell=()=>S.R.filter(r=>r.vendor==S.user.id);
+function drawList(){
+ const q=S.q.toLowerCase();
+ const a=S.L.filter(x=>(S.f=='all'||x.kind==S.f)&&((x.title||'')+(x.shop_name||'')+(x.description||'')).toLowerCase().includes(q));
+ $('#list').innerHTML=a.length?a.map(x=>`<article class="card">${x.image_path?`<img src="${esc(photo(x.image_path))}" alt="${esc(x.title)}" loading="lazy">`:''}<div class="row"><span class="kind ${x.kind}">${x.kind=='product'?'Product':'Service'}</span><span class="price">${usd(x.price_cents)}</span></div><h3>${esc(x.title)}</h3><div class="mute">${esc(x.shop_name)}${rt(x.id)}</div><div>${esc(x.description)}</div><div><button class="btn" data-a="open" data-id="${x.id}">${x.kind=='product'?'Request to buy':'Request a quote'}</button></div></article>`).join(''):'<p class="empty">No listings yet. Add the first one from the Sell tab.</p>';
+}
+function drawMine(){
+ const a=mineBuy();
+ $('#mine').innerHTML=a.length?'<div class="grid">'+a.map(r=>`<div class="card"><div class="row"><h3>${esc(r.listing_title)}</h3>${pill(r.status)}</div>${r.note?`<div>“${esc(r.note)}”</div>`:''}${
+  r.status=='accepted'?`<div class="mute">Accepted. Total ${usd(r.price_cents)}.</div><div><button class="btn" data-a="pay" data-id="${r.id}">Pay ${usd(r.price_cents)}</button></div>`:
+  r.status=='paid'?'<div class="mute">Payment received. The vendor will mark it completed.</div>':
+  r.status=='completed'?(r.rating?`<div class="mute">You rated this ${'★'.repeat(r.rating)}</div>`:`<div class="mute">Completed. How was it?</div><div class="row" style="justify-content:flex-start;flex-wrap:wrap">${[1,2,3,4,5].map(n=>`<button class="btn ghost" data-a="rate" data-id="${r.id}" data-n="${n}" aria-label="${n} stars">${n}★</button>`).join('')}</div>`):''}<div><button class="btn ghost" data-a="chat" data-id="${r.id}">Chat</button></div></div>`).join('')+'</div>':'<p class="empty">No requests yet. Pick a listing and send one.</p>';
+}
+function drawSell(){
+ const ls=S.L.filter(x=>x.owner==S.user.id),rs=mineSell();
+ $('#mylist').innerHTML=ls.length?'<div class="grid">'+ls.map(x=>`<div class="card"><div class="row"><h3>${esc(x.title)}</h3><span class="price">${usd(x.price_cents)}</span></div><div class="mute">${esc(x.shop_name)}</div><div><button class="btn ghost" data-a="del" data-id="${x.id}">Remove listing</button></div></div>`).join('')+'</div>':'<p class="empty">You have no listings yet.</p>';
+ $('#inc').innerHTML=rs.length?'<div class="grid">'+rs.map(r=>`<div class="card"><div class="row"><h3>${esc(r.listing_title)}</h3>${pill(r.status)}</div><div class="mute">${usd(r.price_cents)}</div>${r.note?`<div>“${esc(r.note)}”</div>`:''}${
+  r.status=='pending'?`<div class="row" style="justify-content:flex-start"><button class="btn" data-a="ok" data-id="${r.id}">Accept</button><button class="btn ghost" data-a="no" data-id="${r.id}">Decline</button></div>`:
+  r.status=='paid'?`<div><button class="btn" data-a="done" data-id="${r.id}">Mark completed</button></div>`:
+  r.status=='accepted'?'<div class="mute">Waiting for the buyer to pay.</div>':''}<div><button class="btn ghost" data-a="chat" data-id="${r.id}">Chat</button></div></div>`).join('')+'</div>':'<p class="empty">No requests for your listings yet.</p>';
+ $('#payout').innerHTML=S.prof&&S.prof.paystack_subaccount?'<p class="mute">Payout account connected. You will be paid when orders are completed.</p>':
+  `<div class="card"><p class="mute" style="margin:0">Add your bank account so buyers can pay you.</p>
+  <label for="bn">Business name</label><input id="bn" placeholder="Your shop or business name">
+  <label for="bk">Bank</label><select id="bk">${S.banks.length?S.banks.map(b=>`<option value="${esc(b.code)}">${esc(b.name)}</option>`).join(''):'<option value="">Loading banks…</option>'}</select>
+  <label for="ba">Account number</label><input id="ba" inputmode="numeric" maxlength="10" placeholder="10 digits">
+  <div><button class="btn" data-a="bank">Save payout account</button></div></div>`;
+}
+function update(){
+ if(!S.user)return;
+ const pend=mineSell().filter(r=>r.status=='pending'||r.status=='paid').length;
+ const ts=$('#ts');if(ts)ts.innerHTML='Sell'+(pend?`<span class="badge">${pend}</span>`:'');
+ if(S.tab=='buy'&&$('#list')){drawList();drawMine()}
+ else if(S.tab=='sell'&&$('#inc')){const keep=$('#bn')?[$('#bn').value,$('#bk').value,$('#ba').value]:null;drawSell();if(keep&&$('#bn')){$('#bn').value=keep[0];if(keep[1])$('#bk').value=keep[1];$('#ba').value=keep[2]}}
+}
+function render(){
+ if(!S.user)return authView();
+ $('#root').innerHTML=`<header><h1>Vendora</h1><button class="btn ghost" data-a="out">Sign out</button></header>
+ <div class="tabs"><button data-a="tab" data-v="buy" id="tb" aria-pressed="${S.tab=='buy'}">Buy</button><button data-a="tab" data-v="sell" id="ts" aria-pressed="${S.tab=='sell'}">Sell</button></div>`+(S.tab=='buy'?
+ `<input id="q" type="search" placeholder="Search products and services" value="${esc(S.q)}" aria-label="Search">
+  <div class="chips">${[['all','All'],['product','Products'],['service','Services']].map(c=>`<button class="chip" data-a="f" data-v="${c[0]}" aria-pressed="${S.f==c[0]}">${c[1]}</button>`).join('')}</div>
+  <div class="grid" id="list"></div><div class="row"><h2>Your requests</h2><button class="btn ghost" data-a="refresh">Refresh</button></div><div id="mine"></div>`:
+ `<h2 style="margin-top:0">Get paid</h2><div id="payout"></div>
+  <h2>Add a listing</h2><div class="card">
+  <label for="nv">Shop name</label><input id="nv" placeholder="Your shop or business name">
+  <label for="nt">Name</label><input id="nt" placeholder="What are you selling?">
+  <label for="nk">Type</label><select id="nk"><option value="product">Physical product</option><option value="service">Service</option></select>
+  <label for="np">Price in US dollars</label><input id="np" inputmode="decimal" placeholder="25 or 40.50">
+  <label for="nd">Description</label><textarea id="nd" rows="3" placeholder="What does the buyer get?"></textarea>
+  <label for="ni">Photo (optional)</label><input id="ni" type="file" accept="image/*">
+  <p id="err" role="alert" style="color:var(--bad);margin:4px 0"></p>
+  <div><button class="btn" data-a="add" id="addb">Publish listing</button></div></div>
+  <h2>Your listings</h2><div id="mylist"></div><h2>Incoming requests</h2><div id="inc"></div>`);
+ if(S.tab=='buy')$('#q').oninput=e=>{S.q=e.target.value;drawList()};
+ update();
+ if(S.tab=='sell'&&!S.banks.length)loadBanks();
+}
+async function loadBanks(){
+ const {data}=await sb.functions.invoke('paystack-banks');
+ if(data&&data.banks){S.banks=data.banks;update()}
+}
+// ----- Sheets -----
+function sheet(){
+ const x=S.open?lst(S.open):null;
+ $('#sheet').innerHTML=x?`<div class="sheet" data-a="close"><div role="dialog" aria-label="Send request"><h3>${esc(x.title)}</h3><div class="mute">${esc(x.shop_name)} · ${usd(x.price_cents)}</div><label for="rn">Message to the vendor</label><textarea id="rn" rows="3" placeholder="Quantity, date, or any details"></textarea><div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" data-a="close2">Cancel</button><button class="btn" data-a="send">Send request</button></div></div></div>`:'';
+ if(x)$('#rn').focus();
+}
+function chatSheet(){
+ const r=S.R.find(x=>x.id==S.chat);
+ if(!r){$('#sheet').innerHTML='';return}
+ const prev=$('#mt')?$('#mt').value:'';
+ $('#sheet').innerHTML=`<div class="sheet" data-a="cclose"><div role="dialog" aria-label="Chat"><div class="row"><h3>${esc(r.listing_title)}</h3><button class="btn ghost" data-a="cclose">Close</button></div><div id="msgs" class="msgs">${S.M.length?S.M.map(m=>`<div class="msg ${m.sender==S.user.id?'me':''}"><span class="mute">${m.sender==r.buyer?'Buyer':'Vendor'}</span><div>${esc(m.body)}</div></div>`).join(''):'<p class="empty">No messages yet. Say hello and agree on details.</p>'}</div><div class="row"><input id="mt" placeholder="Write a message" aria-label="Message"><button class="btn" data-a="msend">Send</button></div></div></div>`;
+ $('#mt').value=prev;const g=$('#msgs');g.scrollTop=g.scrollHeight;
+}
+async function loadMsgs(){
+ if(!S.chat)return;
+ const {data}=await sb.from('messages').select('*').eq('request_id',S.chat).order('created_at');
+ if(data&&(data.length!=S.M.length)){S.M=data;chatSheet()}
+}
+function shrink(f){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>{const k=Math.min(1,900/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);c.toBlob(b=>b?ok(b):no(),'image/jpeg',.8)};i.onerror=no;i.src=URL.createObjectURL(f)})}
+async function setStatus(id,patch){
+ const {error}=await sb.from('requests').update(patch).eq('id',id);
+ if(error)toast('That did not work: '+error.message);
+ await load();
+}
+// ----- Actions -----
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('[data-a]');if(!b)return;
+ const a=b.dataset.a,id=b.dataset.id;
+ if((a=='close'||a=='cclose')&&e.target!==b)return;
+ if(a=='signin'||a=='signup'){
+  const email=$('#em').value.trim(),password=$('#pw').value;
+  if(!email||password.length<8){$('#aerr').textContent='Enter your email and a password of at least 8 characters.';return}
+  b.disabled=true;
+  const r=a=='signin'?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password});
+  b.disabled=false;
+  if(r.error){$('#aerr').textContent=r.error.message}
+  else if(a=='signup'&&!r.data.session){$('#aerr').style.color='var(--ok)';$('#aerr').textContent='Check your email and tap the confirmation link, then sign in.'}
+ }
+ else if(a=='out'){await sb.auth.signOut()}
+ else if(a=='tab'){S.tab=b.dataset.v;render()}
+ else if(a=='f'){S.f=b.dataset.v;render()}
+ else if(a=='refresh'){await load();toast('Updated')}
+ else if(a=='open'){S.open=id;sheet()}
+ else if(a=='close'||a=='close2'){S.open=null;sheet()}
+ else if(a=='send'){
+  const note=$('#rn').value.trim(),lid=S.open;S.open=null;sheet();
+  const {error}=await sb.from('requests').insert({listing_id:lid,note});
+  if(error)toast('Could not send: '+error.message);else toast('Request sent');
+  await load();
+ }
+ else if(a=='ok'||a=='no')await setStatus(id,{status:a=='ok'?'accepted':'declined'});
+ else if(a=='done')await setStatus(id,{status:'completed'});
+ else if(a=='rate')await setStatus(id,{rating:+b.dataset.n});
+ else if(a=='del'){const {error}=await sb.from('listings').delete().eq('id',id);if(error)toast(error.message);await load()}
+ else if(a=='pay'){
+  b.disabled=true;
+  const {data,error}=await sb.functions.invoke('paystack-init',{body:{request_id:id,callback_url:location.origin+location.pathname}});
+  if(error||!data||!data.url){b.disabled=false;toast((data&&data.error)||'Could not start payment. Try again.')}
+  else location.href=data.url;
+ }
+ else if(a=='bank'){
+  const business_name=$('#bn').value.trim(),bank_code=$('#bk').value,account_number=$('#ba').value.trim();
+  if(!business_name||!bank_code||!/^\d{10}$/.test(account_number)){toast('Enter a business name, pick your bank and add your 10-digit account number.');return}
+  b.disabled=true;
+  const {data,error}=await sb.functions.invoke('paystack-subaccount',{body:{business_name,bank_code,account_number}});
+  b.disabled=false;
+  if(error||!data||!data.ok)toast((data&&data.error)||'Could not save the account. Check the details.');
+  else{toast('Payout account saved');await load()}
+ }
+ else if(a=='add'){
+  const title=$('#nt').value.trim(),price=parseFloat($('#np').value);
+  if(!title||!(price>0)){$('#err').textContent='Add a name and a price greater than zero.';return}
+  b.disabled=true;$('#err').textContent='';
+  let image_path=null;const f=$('#ni').files[0];
+  if(f){try{const p=S.user.id+'/'+Date.now()+'.jpg';const up=await sb.storage.from('listing-photos').upload(p,await shrink(f),{contentType:'image/jpeg'});if(!up.error)image_path=p}catch(x){}}
+  const {error}=await sb.from('listings').insert({shop_name:$('#nv').value.trim()||'My shop',title,kind:$('#nk').value,price_cents:Math.round(price*100),description:$('#nd').value.trim(),image_path});
+  b.disabled=false;
+  if(error){$('#err').textContent=error.message;return}
+  S.tab='buy';S.q='';S.f='all';render();await load();toast('Listing published');
+ }
+ else if(a=='chat'){S.chat=id;S.M=[];chatSheet();await loadMsgs();S.M=S.M;chatSheet();clearInterval(chatT);chatT=setInterval(loadMsgs,4000)}
+ else if(a=='cclose'){S.chat=null;clearInterval(chatT);$('#sheet').innerHTML=''}
+ else if(a=='msend'){
+  const t=$('#mt').value.trim();if(!t)return;$('#mt').value='';
+  const {error}=await sb.from('messages').insert({request_id:S.chat,body:t});
+  if(error)toast(error.message);
+  S.M=[];await loadMsgs();
+ }
+});
+// ----- Start -----
+sb.auth.onAuthStateChange((ev,session)=>{
+ const was=S.user&&S.user.id;S.user=session?session.user:null;
+ if((S.user&&S.user.id)!==was){S.L=[];S.R=[];S.prof=null;render();load()}
+});
+sb.auth.getSession().then(({data})=>{if(!data.session)render()});
+setInterval(()=>{if(S.user&&!S.chat&&!document.hidden)load()},20000);
+</script>
+</body>
+</html>
